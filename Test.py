@@ -14,8 +14,6 @@ from utils.torch_utils import select_device, time_sync
 #Reduce memory usage and speeds up computation by disabling gradient calculation
 @torch.no_grad()
 
-#hi
-
 class Detection:
     def __init__(self, weights, source, data, imgsz, conf_thres, iou_thres, max_det, device, view_img, save_txt, save_conf, save_crop,
                  nosave, classes, agnostic_nms, augment, visualize, update, project, name, exist_ok, line_thickness, hide_labels,
