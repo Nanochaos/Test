@@ -171,7 +171,7 @@ class Detection:
             im0 = annotator.result()
             if self.view_img and im0.any():
                 cv2.imshow(str(p), cv2.resize(im0, (1920, 1080)))
-                if self.source == '0':
+                if webcam:
                     cv2.waitKey(1)                                                                              # 1 millisecond
                 else:
                     cv2.waitKey(0)
