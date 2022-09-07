@@ -94,7 +94,7 @@ class Detection:
             dt[0] += t2 - t1
 
             # Inference
-            visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if self.visualize else False
+            self.visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if self.visualize else False
             pred = model(im, augment=self.augment, visualize=self.visualize)
             t3 = time_sync()
             dt[1] += t3 - t2
@@ -147,17 +147,6 @@ class Detection:
                             if self.save_crop:
                                 save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
-
-                    """ REMOVE THIS ONCE YOU CAN STREAM THE IMAGES IN THE GUI"""
-                    # Stream results
-                    im0 = annotator.result()
-                    if self.view_img:
-                        cv2.imshow(str(p), cv2.resize(im0,(1920,1080)))
-                        if webcam:
-                            cv2.waitKey(1)                                                                          # 1 millisecond
-                        else:
-                            cv2.waitKey(0)
-
                     # Save results (image with detections)
                     if save_img:
                         if dataset.mode == 'image':
@@ -177,6 +166,16 @@ class Detection:
                                 vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                             vid_writer[i].write(im0)
 
+            """ REMOVE THIS ONCE YOU CAN STREAM THE IMAGES IN THE GUI"""
+            # Stream results
+            im0 = annotator.result()
+            if self.view_img and im0.any():
+                cv2.imshow(str(p), cv2.resize(im0, (1920, 1080)))
+                if self.source == '0':
+                    cv2.waitKey(1)                                                                              # 1 millisecond
+                else:
+                    cv2.waitKey(0)
+
         # Print results
         t = tuple(x / seen * 1E3 for x in dt)                                                                   # speeds per image
         LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *self.imgsz)}' % t)
@@ -190,11 +189,12 @@ class Detection:
 def main():
     #We change variables here
     Test = Detection(**vars(opt))
-    Test.source = '2.jpg'
+    Test.source = '0'
     Test.conf_thres = 0.2
     Test.iou_thres = 0.3
     Test.hide_labels = True
     Test.line_thickness = 2
+    Test.classes = 0
     Test.run()
 
 if __name__ == "__main__":
