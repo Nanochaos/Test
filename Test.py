@@ -160,10 +160,10 @@ class Detection:
 
                     # Save detections in matrix format
                     if self.save_matrix:
-                        for i, e in enumerate(det[:, :4]):
+                        for e in det[:, :4]:
                             x1, y1, x2, y2 = e
                             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                            m[y1:y2, x1:x2] = i
+                            m[y1:y2, x1:x2] += 1
                         os.mkdir(save_dir / 'matrix') if not os.path.exists(save_dir / 'matrix') else None
                         m.tofile(save_dir / 'matrix' / f'{p.stem}.csv', sep=',', format='%d')
 
@@ -215,7 +215,7 @@ def main():
     Test = Detection(**vars(opt))
     Test.source = '2.jpg'
     Test.conf_thres = 0.2
-    Test.iou_thres = 0
+    Test.iou_thres = 0.3
     Test.hide_labels = True
     Test.line_thickness = 2
     Test.classes = 0
