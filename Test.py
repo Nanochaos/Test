@@ -14,6 +14,8 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
+import json
+
 
 # Reduce memory usage and speeds up computation by disabling gradient calculation
 @torch.no_grad()
@@ -22,7 +24,7 @@ class Detection:
                  save_conf, save_crop,
                  nosave, classes, agnostic_nms, augment, visualize, update, project, name, exist_ok, line_thickness,
                  hide_labels,
-                 hide_conf, half, dnn, save_matrix):
+                 hide_conf, half, dnn, save_results):
         self.weights = weights  # model.pt path(s)
         self.source = source  # file/dir/URL/glob, 0 for webcam
         self.data = data  # dataset.yaml path
@@ -53,8 +55,9 @@ class Detection:
         self.half = half  # use FP16 half-precision inference
         self.dnn = dnn  # use OpenCV DNN for ONNX inference
 
-        self.save_matrix = save_matrix
-
+        self.save_results = save_results
+        # self.results = np.asarray([])
+        self.results = {}
     def run(self):
         self.source = str(self.source)
         save_img = not self.nosave and not self.source.endswith('.txt')  # save inference LoadImages
@@ -113,7 +116,6 @@ class Detection:
 
             # Second-stage classifier (optional)
             # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-            m = np.zeros(im0s.shape[:2])
 
             # Process predictions
             for i, det in enumerate(pred):  # per image
@@ -159,13 +161,20 @@ class Detection:
                                 save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
                     # Save detections in matrix format
-                    if self.save_matrix:
+                    if self.save_results:
+                        m = np.zeros(im0s.shape[:2])
                         for e in det[:, :4]:
                             x1, y1, x2, y2 = e
                             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                             m[y1:y2, x1:x2] += 1
-                        os.mkdir(save_dir / 'matrix') if not os.path.exists(save_dir / 'matrix') else None
-                        m.tofile(save_dir / 'matrix' / f'{p.stem}.csv', sep=',', format='%d')
+
+                        # Save matrix
+                        self.results[dataset.frame] = {'detections': len(det), 'matrix': m.tolist()}
+                        os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
+
+                        # save to json
+                        with open(save_dir / 'results' / f'{p.stem}.json', 'w') as f:
+                            json.dump(self.results, f)
 
                     # Save results (image with detections)
                     if save_img:
@@ -193,11 +202,11 @@ class Detection:
             if self.view_img and im0.any():
                 # cv2.imshow(str(p), cv2.resize(im0, (1920, 1080)))
                 # cv2.imshow(str(p), im0)
-                cv2.imshow(str(p), cv2.resize(im0, (round(im0.shape[1] * 0.3), round(im0.shape[0] * 0.3))))
+                cv2.imshow(str(p), cv2.resize(im0, (round(im0.shape[1] * 0.5), round(im0.shape[0] * 0.5))))
                 if webcam:
                     cv2.waitKey(1)  # 1 millisecond
                 else:
-                    cv2.waitKey(0)
+                    cv2.waitKey(1)
 
         # Print results
         t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
@@ -208,12 +217,12 @@ class Detection:
             LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
         if self.update:
             strip_optimizer(self.weights)  # update model (to fix SourceChangeWarning)
-
+        cv2.waitKey(0)
 
 def main():
     # We change variables here
     Test = Detection(**vars(opt))
-    Test.source = '2.jpg'
+    Test.source = '4.mp4'
     Test.conf_thres = 0.2
     Test.iou_thres = 0.3
     Test.hide_labels = True
@@ -224,7 +233,7 @@ def main():
     Test.save_crop = True
     Test.save_conf = True
     Test.nosave = False
-    Test.save_matrix = True
+    Test.save_results = True
     Test.run()
 
 
@@ -260,7 +269,7 @@ if __name__ == "__main__":
     parser.add_argument('--half', default=False, action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', default=False, action='store_true', help='use OpenCV DNN for ONNX inference')
 
-    parser.add_argument('--save-matrix', default=False, action='store_true', help='save matrix')
+    parser.add_argument('--save-results', default=False, action='store_true', help='save matrix')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
 
