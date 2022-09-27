@@ -14,7 +14,7 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
-import json
+import json, zlib, base64
 
 
 # Reduce memory usage and speeds up computation by disabling gradient calculation
@@ -58,6 +58,7 @@ class Detection:
         self.save_results = save_results
         # self.results = np.asarray([])
         self.results = {}
+
     def run(self):
         self.source = str(self.source)
         save_img = not self.nosave and not self.source.endswith('.txt')  # save inference LoadImages
@@ -172,9 +173,18 @@ class Detection:
                         self.results[dataset.frame] = {'detections': len(det), 'matrix': m.tolist()}
                         os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
 
-                        # save to json
-                        with open(save_dir / 'results' / f'{p.stem}.json', 'w') as f:
-                            json.dump(self.results, f)
+                        # save to compressed numpy file
+                        with open(save_dir / 'results' / f'{p.stem}.compressed', 'w') as f:
+                            f.write(
+                                base64.b64encode(
+                                    zlib.compress(
+                                        json.dumps(self.results).encode('utf-8')
+                                    )
+                                ).decode('ascii')
+                            )
+
+                        # if dataset.frame == 20:
+                        #     raise Exception('stop')
 
                     # Save results (image with detections)
                     if save_img:
@@ -218,6 +228,7 @@ class Detection:
         if self.update:
             strip_optimizer(self.weights)  # update model (to fix SourceChangeWarning)
         cv2.waitKey(0)
+
 
 def main():
     # We change variables here
