@@ -56,7 +56,6 @@ class Detection:
         self.dnn = dnn  # use OpenCV DNN for ONNX inference
 
         self.save_results = save_results
-        # self.results = np.asarray([])
         self.results = {}
 
     def run(self):
@@ -183,8 +182,12 @@ class Detection:
                                 ).decode('ascii')
                             )
 
-                        # if dataset.frame == 20:
-                        #     raise Exception('stop')
+                        # decode compressed numpy file
+                        # with open(save_dir / 'results' / f'{p.stem}.compressed', 'r') as f:
+                        #     self.results = json.loads(zlib.decompress(base64.b64decode(f.read())))
+
+                        if dataset.frame == 20:
+                            raise Exception('stop')
 
                     # Save results (image with detections)
                     if save_img:
