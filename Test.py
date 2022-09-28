@@ -169,6 +169,8 @@ class Detection:
                             m[y1:y2, x1:x2] += 1
 
                         # Save matrix
+                        if not hasattr(dataset, 'frame'):
+                            dataset.frame = 1
                         self.results[dataset.frame] = {'detections': len(det), 'matrix': m.tolist()}
                         os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
 
@@ -186,8 +188,8 @@ class Detection:
                         # with open(save_dir / 'results' / f'{p.stem}.compressed', 'r') as f:
                         #     self.results = json.loads(zlib.decompress(base64.b64decode(f.read())))
 
-                        if dataset.frame == 20:
-                            raise Exception('stop')
+                        # if dataset.frame == 20:
+                        #     raise Exception('stop')
 
                     # Save results (image with detections)
                     if save_img:
@@ -215,7 +217,8 @@ class Detection:
             if self.view_img and im0.any():
                 # cv2.imshow(str(p), cv2.resize(im0, (1920, 1080)))
                 # cv2.imshow(str(p), im0)
-                cv2.imshow(str(p), cv2.resize(im0, (round(im0.shape[1] * 0.5), round(im0.shape[0] * 0.5))))
+                cv2.imshow(f'Frame: {dataset.frame} File:{str(p)}', cv2.resize(im0, (round(im0.shape[1] * 0.5),
+                                                                                     round(im0.shape[0] * 0.5))))
                 if webcam:
                     cv2.waitKey(1)  # 1 millisecond
                 else:
@@ -236,7 +239,7 @@ class Detection:
 def main():
     # We change variables here
     Test = Detection(**vars(opt))
-    Test.source = '4.mp4'
+    Test.source = '5.mp4'
     Test.conf_thres = 0.2
     Test.iou_thres = 0.3
     Test.hide_labels = True
