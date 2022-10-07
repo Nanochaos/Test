@@ -89,6 +89,10 @@ class Detection:
             bs = 1  # batch_size
         vid_path, vid_writer = [None] * bs, [None] * bs
 
+        os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
+        with open(save_dir / 'results' / f'{self.source}.compressed', 'w') as f:
+            f.write('')
+
         # Run inference
         model.warmup(imgsz=(1 if pt else bs, 3, *self.imgsz))  # warmup
         dt, seen = [0.0, 0.0, 0.0], 0
@@ -171,25 +175,29 @@ class Detection:
                         # Save matrix
                         if not hasattr(dataset, 'frame'):
                             dataset.frame = 1
-                        self.results[dataset.frame] = {'detections': len(det), 'matrix': m.tolist()}
-                        os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
+                        self.results = base64.b64encode(
+                            zlib.compress(
+                                json.dumps({"frame": dataset.frame, "detections": len(det),
+                                            "matrix": m.tolist()}).encode('utf-8')
+                            )
+                        ).decode('ascii')
+                        # os.mkdir(save_dir / 'results') if not os.path.exists(save_dir / 'results') else None
 
                         # save to compressed numpy file
-                        with open(save_dir / 'results' / f'{p.stem}.compressed', 'w') as f:
-                            f.write(
-                                base64.b64encode(
-                                    zlib.compress(
-                                        json.dumps(self.results).encode('utf-8')
-                                    )
-                                ).decode('ascii')
-                            )
+                        with open(save_dir / 'results' / f'{self.source}.compressed', 'a') as f:
+                            f.write(f'{str(self.results)}\n')
 
-                        # decode compressed numpy file
-                        # with open(save_dir / 'results' / f'{p.stem}.compressed', 'r') as f:
-                        #     self.results = json.loads(zlib.decompress(base64.b64decode(f.read())))
+                        # decode compressed numpy file (y being the dictionary with all the frame data)
+                        # y = {}
+                        # with open(
+                        #         'C:\\Users\json\Documents\JetBrains\PycharmProjects\Test/runs\detect\exp/results/5.mp4.compressed',
+                        #         'r') as f:
+                        #     x = f.read().splitlines()
+                        #     for i, e in enumerate(x):
+                        #         y[str(i + 1)] = json.loads(zlib.decompress(base64.b64decode(e)))
 
-                        # if dataset.frame == 20:
-                        #     raise Exception('stop')
+                        if dataset.frame == 5:
+                            raise Exception('stop')
 
                     # Save results (image with detections)
                     if save_img:
@@ -217,8 +225,9 @@ class Detection:
             if self.view_img and im0.any():
                 # cv2.imshow(str(p), cv2.resize(im0, (1920, 1080)))
                 # cv2.imshow(str(p), im0)
-                cv2.imshow(f'Frame: {dataset.frame} File:{str(p)}', cv2.resize(im0, (round(im0.shape[1] * 0.5),
-                                                                                     round(im0.shape[0] * 0.5))))
+                # cv2.imshow(f'Frame: {dataset.frame} File:{str(p)}', cv2.resize(im0, (round(im0.shape[1] * 0.5),
+                #                                                                      round(im0.shape[0] * 0.5))))
+                cv2.imshow('frame', cv2.resize(im0, (round(im0.shape[1] * 0.5), round(im0.shape[0] * 0.5))))
                 if webcam:
                     cv2.waitKey(1)  # 1 millisecond
                 else:
